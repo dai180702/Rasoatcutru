@@ -5,7 +5,7 @@ import { type User } from 'firebase/auth';
 import VerificationForm from './components/VerificationForm';
 import RecordsList from './components/RecordsList';
 import LoginForm from './components/LoginForm';
-import { addRecord, getRecords, deleteRecord } from '../lib/firestore';
+import { addRecord, getRecords, deleteRecord, subscribeToRecords } from '../lib/firestore';
 import { subscribeToAuthState, isAuthorizedUser } from '../lib/auth';
 
 export interface VerificationData {
@@ -28,46 +28,52 @@ export default function Home() {
   const [records, setRecords] = useState<(VerificationData & { id: string; ngayKiemTra: string })[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Theo dõi trạng thái đăng nhập
+  // Theo dõi trạng thái đăng nhập và subscribe real-time cho records
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState((user) => {
+    let unsubscribeRecords: (() => void) | null = null;
+
+    const unsubscribeAuth = subscribeToAuthState((user) => {
       setCurrentUser(user);
 
-      // Nếu đã đăng nhập và được phép, load danh sách
+      // Unsubscribe records cũ nếu có
+      if (unsubscribeRecords) {
+        unsubscribeRecords();
+        unsubscribeRecords = null;
+      }
+
+      // Nếu đã đăng nhập và được phép, subscribe real-time
       if (user && isAuthorizedUser(user)) {
-        loadRecords();
+        setIsLoadingRecords(true);
+        unsubscribeRecords = subscribeToRecords(
+          (data) => {
+            setRecords(data);
+            setIsLoadingRecords(false);
+          },
+          (error) => {
+            console.error('Error subscribing to records:', error);
+            alert(error.message);
+            setRecords([]);
+            setIsLoadingRecords(false);
+          }
+        );
       } else {
         setIsLoadingRecords(false);
         setRecords([]);
       }
     });
 
-    return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeRecords) {
+        unsubscribeRecords();
+      }
+    };
   }, []);
 
-  // Load danh sách khi user đăng nhập thành công
+  // Load danh sách khi user đăng nhập thành công (backup, nhưng real-time sẽ tự động cập nhật)
   const handleLoginSuccess = (user: User) => {
     setCurrentUser(user);
-    if (isAuthorizedUser(user)) {
-      loadRecords();
-    }
-  };
-
-  const loadRecords = async () => {
-    try {
-      setIsLoadingRecords(true);
-      const data = await getRecords();
-      setRecords(data);
-    } catch (error) {
-      console.error('Error loading records:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.';
-      alert(errorMessage);
-      // Nếu lỗi không nghiêm trọng, vẫn hiển thị danh sách rỗng
-      setRecords([]);
-    } finally {
-      setIsLoadingRecords(false);
-    }
+    // Real-time listener sẽ tự động cập nhật trong useEffect
   };
 
   const handleVerification = async (data: VerificationData) => {
@@ -76,10 +82,7 @@ export default function Home() {
     try {
       await addRecord(data);
       alert('Thêm bản ghi thành công!');
-      // Chỉ reload danh sách nếu đã đăng nhập và được phép
-      if (currentUser && isAuthorizedUser(currentUser)) {
-        await loadRecords();
-      }
+      // Real-time listener sẽ tự động cập nhật danh sách, không cần gọi loadRecords()
     } catch (error) {
       console.error('Error adding record:', error);
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi thêm bản ghi. Vui lòng thử lại.';
@@ -93,8 +96,7 @@ export default function Home() {
     if (confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) {
       try {
         await deleteRecord(id);
-        // Reload danh sách sau khi xóa thành công
-        await loadRecords();
+        // Real-time listener sẽ tự động cập nhật danh sách, không cần gọi loadRecords()
       } catch (error) {
         console.error('Error deleting record:', error);
         const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa bản ghi. Vui lòng thử lại.';

@@ -6,7 +6,9 @@ import {
   doc, 
   query, 
   orderBy,
-  Timestamp 
+  Timestamp,
+  onSnapshot,
+  type Unsubscribe
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { VerificationData } from '../app/page';
@@ -130,3 +132,55 @@ export const deleteRecord = async (id: string): Promise<void> => {
   }
 };
 
+// Subscribe real-time để tự động cập nhật khi có thay đổi
+export const subscribeToRecords = (
+  callback: (records: Record[]) => void,
+  onError?: (error: Error) => void
+): Unsubscribe => {
+  try {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      orderBy('createdAt', 'asc')
+    );
+    
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        const records: Record[] = [];
+        querySnapshot.forEach((doc) => {
+          records.push({
+            id: doc.id,
+            ...doc.data(),
+          } as Record);
+        });
+        
+        // Sort manually nếu cần (fallback)
+        const sortedRecords = records.sort((a, b) => {
+          if (a.createdAt && b.createdAt) {
+            return a.createdAt.toMillis() - b.createdAt.toMillis();
+          }
+          return 0;
+        });
+        
+        callback(sortedRecords);
+      },
+      (error) => {
+        console.error('Error subscribing to records:', error);
+        const firestoreError = error as { code?: string; message?: string };
+        
+        if (firestoreError.code === 'permission-denied') {
+          onError?.(new Error('Không có quyền truy cập Firestore. Vui lòng kiểm tra Firestore Rules.'));
+        } else if (firestoreError.code === 'unavailable') {
+          onError?.(new Error('Firestore không khả dụng. Vui lòng kiểm tra kết nối internet.'));
+        } else {
+          onError?.(new Error('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại.'));
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error setting up subscription:', error);
+    onError?.(new Error('Có lỗi xảy ra khi thiết lập kết nối. Vui lòng thử lại.'));
+    // Return no-op unsubscribe
+    return () => {};
+  }
+};
