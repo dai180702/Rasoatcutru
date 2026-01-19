@@ -153,7 +153,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>© 2024 Hệ thống Rà soát Cư trú. Bảo mật thông tin được đảm bảo.</p>
+          <p>© 2026 Hệ thống Rà soát Cư trú. Bảo mật thông tin được đảm bảo.</p>
         </footer>
       </div>
     </div>
