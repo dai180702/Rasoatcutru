@@ -23,7 +23,7 @@ export default function VerificationForm({ onSubmit, isLoading, onSuccess }: Ver
     ngheNghiep: '',
     soDienThoai: '',
     dauThoiGian: new Date().toISOString(),
-    dangKyBauCuTanLap: false,
+    dangKyBauCuTanLap: '',
   });
 
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
@@ -317,20 +317,37 @@ export default function VerificationForm({ onSubmit, isLoading, onSuccess }: Ver
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Bắt buộc đúng 10 chữ số.</p>
       </div>
 
-      {/* Đăng ký bầu cử tại Tân Lập */}
+      {/* Đồng ý bầu cử tại Tân Uyên */}
       <div>
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            name="dangKyBauCuTanLap"
-            checked={formData.dangKyBauCuTanLap}
-            onChange={handleChange}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-          />
-          <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Đăng ký bầu cử tại Tân Lập
-          </span>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Đồng ý bầu cử tại Tân Uyên <span className="text-red-500">*</span>
         </label>
+        <div className="flex gap-6">
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="dangKyBauCuTanLap"
+              value="Đồng ý"
+              checked={formData.dangKyBauCuTanLap === 'Đồng ý'}
+              onChange={handleChange}
+              required
+              className="w-4 h-4 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <span className="ml-2 text-gray-700 dark:text-gray-300">Đồng ý</span>
+          </label>
+          <label className="flex items-center cursor-pointer">
+            <input
+              type="radio"
+              name="dangKyBauCuTanLap"
+              value="Không đồng ý"
+              checked={formData.dangKyBauCuTanLap === 'Không đồng ý'}
+              onChange={handleChange}
+              required
+              className="w-4 h-4 text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <span className="ml-2 text-gray-700 dark:text-gray-300">Không đồng ý</span>
+          </label>
+        </div>
       </div>
 
       {/* Submit Button */}

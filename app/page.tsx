@@ -15,11 +15,11 @@ export interface VerificationData {
   hkttXaPhuong: string;
   hkttTinhTP: string;
   noiOHienTai: string;
-  dangKyTamTru: string; // "rồi" hoặc "chưa"
+  dangKyTamTru: string; // "rồi", "chưa", hoặc "không xác định"
   ngheNghiep: string;
   soDienThoai: string;
   dauThoiGian: string;
-  dangKyBauCuTanLap: boolean;
+  dangKyBauCuTanLap: string; // "Đồng ý" hoặc "Không đồng ý"
 }
 
 export default function Home() {

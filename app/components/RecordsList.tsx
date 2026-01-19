@@ -119,7 +119,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     worksheet.getCell('I3').value = 'Chưa\nĐK\n tạm trú';
     worksheet.getCell('J3').value = 'Nghề nghiệp';
     worksheet.getCell('K3').value = 'Số điện thoại';
-    worksheet.getCell('L3').value = 'Đăng ký\nbầu cử';
+    worksheet.getCell('L3').value = 'Đồng ý bầu cử\n tại Tân Uyên';
     worksheet.getCell('M3').value = 'Ngày giờ\nnhập';
 
     // Header styles + borders
@@ -161,7 +161,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
       r.getCell(9).value = record.dangKyTamTru === 'chưa' ? 'X' : '';
       r.getCell(10).value = record.ngheNghiep;
       r.getCell(11).value = record.soDienThoai;
-      r.getCell(12).value = record.dangKyBauCuTanLap ? 'Có' : 'Không';
+      r.getCell(12).value = record.dangKyBauCuTanLap || '-';
       r.getCell(13).value = formatDateTime(record.createdAt);
 
       // Styles + borders
@@ -254,7 +254,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
               <th className="px-4 py-3 text-center">Chưa ĐK tạm trú</th>
               <th className="px-4 py-3">Nghề nghiệp</th>
               <th className="px-4 py-3">Số điện thoại</th>
-              <th className="px-4 py-3 text-center">Đăng ký bầu cử</th>
+              <th className="px-4 py-3 text-center">Đồng ý bầu cử tại Tân Uyên</th>
               <th className="px-4 py-3 text-center">Ngày giờ nhập</th>
               <th className="px-4 py-3 text-center">Thao tác</th>
             </tr>
@@ -299,7 +299,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
                   {record.soDienThoai}
                 </td>
                 <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
-                  {record.dangKyBauCuTanLap ? 'Có' : 'Không'}
+                  {record.dangKyBauCuTanLap || '-'}
                 </td>
                 <td className="px-4 py-3 text-center text-gray-900 dark:text-white text-xs">
                   {formatDateTime(record.createdAt)}
