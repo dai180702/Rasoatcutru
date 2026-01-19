@@ -1,9 +1,10 @@
 'use client';
 
 import { VerificationData } from '../page';
+import { Timestamp } from 'firebase/firestore';
 
 interface RecordsListProps {
-  records: (VerificationData & { id: string; ngayKiemTra: string })[];
+  records: (VerificationData & { id: string; ngayKiemTra: string; createdAt?: Timestamp })[];
   onDelete: (id: string) => void;
 }
 
@@ -21,6 +22,19 @@ function formatDateDdMmYyyy(input: string): string {
   }
 
   return input;
+}
+
+function formatDateTime(createdAt?: Timestamp): string {
+  if (!createdAt) return '';
+  
+  const date = createdAt.toDate();
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
 export default function RecordsList({ records, onDelete }: RecordsListProps) {
@@ -57,7 +71,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
       { key: 'nghenghiep', width: 18 }, // J
       { key: 'sdt', width: 16 }, // K
       { key: 'baucu', width: 12 }, // L
-      { key: 'thaotac', width: 10 }, // M (trên web có, excel không dùng; để trống)
+      { key: 'ngayGioNhap', width: 18 }, // M - Ngày giờ nhập
     ];
 
     // Title / header (giống mẫu)
@@ -89,7 +103,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     worksheet.getRow(4).height = 24;
 
     // Merge vertical header cells
-    const mergeVertical = ['A', 'B', 'C', 'D', 'G', 'H', 'I', 'J', 'K', 'L'];
+    const mergeVertical = ['A', 'B', 'C', 'D', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
     mergeVertical.forEach((col) => worksheet.mergeCells(`${col}3:${col}4`));
     worksheet.mergeCells('E3:F3'); // Hộ khẩu thường trú
 
@@ -106,12 +120,13 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     worksheet.getCell('J3').value = 'Nghề nghiệp';
     worksheet.getCell('K3').value = 'Số điện thoại';
     worksheet.getCell('L3').value = 'Đăng ký\nbầu cử';
+    worksheet.getCell('M3').value = 'Ngày giờ\nnhập';
 
     // Header styles + borders
     const headerCells = [
-      'A3', 'B3', 'C3', 'D3', 'E3', 'E4', 'F4', 'G3', 'H3', 'I3', 'J3', 'K3', 'L3',
+      'A3', 'B3', 'C3', 'D3', 'E3', 'E4', 'F4', 'G3', 'H3', 'I3', 'J3', 'K3', 'L3', 'M3',
       'F3', // merged range still needs style on top-left; adding for safety
-      'A4', 'B4', 'C4', 'D4', 'G4', 'H4', 'I4', 'J4', 'K4', 'L4',
+      'A4', 'B4', 'C4', 'D4', 'G4', 'H4', 'I4', 'J4', 'K4', 'L4', 'M4',
     ];
     headerCells.forEach((addr) => {
       const cell = worksheet.getCell(addr);
@@ -120,9 +135,9 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
       cell.border = thinBorder;
     });
 
-    // Ensure border on full header area A3:L4
+    // Ensure border on full header area A3:M4
     for (let r = 3; r <= 4; r++) {
-      for (let c = 1; c <= 12; c++) {
+      for (let c = 1; c <= 13; c++) {
         const cell = worksheet.getRow(r).getCell(c);
         cell.border = thinBorder;
         if (!cell.alignment) {
@@ -147,14 +162,15 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
       r.getCell(10).value = record.ngheNghiep;
       r.getCell(11).value = record.soDienThoai;
       r.getCell(12).value = record.dangKyBauCuTanLap ? 'Có' : 'Không';
+      r.getCell(13).value = formatDateTime(record.createdAt);
 
       // Styles + borders
-      for (let c = 1; c <= 12; c++) {
+      for (let c = 1; c <= 13; c++) {
         const cell = r.getCell(c);
         cell.border = thinBorder;
         cell.alignment = {
           vertical: 'middle',
-          horizontal: [1, 3, 4, 8, 9, 12].includes(c) ? 'center' : 'left',
+          horizontal: [1, 3, 4, 8, 9, 12, 13].includes(c) ? 'center' : 'left',
           wrapText: c === 7,
         };
       }
@@ -239,6 +255,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
               <th className="px-4 py-3">Nghề nghiệp</th>
               <th className="px-4 py-3">Số điện thoại</th>
               <th className="px-4 py-3 text-center">Đăng ký bầu cử</th>
+              <th className="px-4 py-3 text-center">Ngày giờ nhập</th>
               <th className="px-4 py-3 text-center">Thao tác</th>
             </tr>
           </thead>
@@ -283,6 +300,9 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
                 </td>
                 <td className="px-4 py-3 text-center text-gray-900 dark:text-white">
                   {record.dangKyBauCuTanLap ? 'Có' : 'Không'}
+                </td>
+                <td className="px-4 py-3 text-center text-gray-900 dark:text-white text-xs">
+                  {formatDateTime(record.createdAt)}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button
