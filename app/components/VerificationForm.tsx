@@ -87,7 +87,7 @@ export default function VerificationForm({ onSubmit, isLoading, onSuccess }: Ver
       ngheNghiep: '',
       soDienThoai: '',
       dauThoiGian: new Date().toISOString(),
-      dangKyBauCuTanLap: false,
+      dangKyBauCuTanLap: '',
     });
     setAvailableDistricts([]);
   };
