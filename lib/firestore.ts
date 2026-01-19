@@ -52,7 +52,7 @@ export const getRecords = async (): Promise<Record[]> => {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
-        orderBy('createdAt', 'desc')
+        orderBy('createdAt', 'asc')
       );
       
       const querySnapshot = await getDocs(q);
@@ -81,10 +81,10 @@ export const getRecords = async (): Promise<Record[]> => {
           } as Record);
         });
         
-        // Sort manually nếu có createdAt
+        // Sort manually nếu có createdAt (cũ nhất lên đầu, mới nhất xuống dưới)
         return records.sort((a, b) => {
           if (a.createdAt && b.createdAt) {
-            return b.createdAt.toMillis() - a.createdAt.toMillis();
+            return a.createdAt.toMillis() - b.createdAt.toMillis();
           }
           return 0;
         });
