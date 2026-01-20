@@ -24,6 +24,7 @@ export default function VerificationForm({ onSubmit, isLoading, onSuccess }: Ver
     soDienThoai: '',
     dauThoiGian: new Date().toISOString(),
     dangKyBauCuTanLap: '',
+    loaiCuTru: 'tamTru',
   });
 
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
@@ -88,6 +89,7 @@ export default function VerificationForm({ onSubmit, isLoading, onSuccess }: Ver
       soDienThoai: '',
       dauThoiGian: new Date().toISOString(),
       dangKyBauCuTanLap: '',
+      loaiCuTru: 'tamTru',
     });
     setAvailableDistricts([]);
   };

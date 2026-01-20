@@ -24,6 +24,7 @@ export default function ThuongTruForm({ onSubmit, isLoading, onSuccess }: Thuong
     soDienThoai: '',
     dauThoiGian: new Date().toISOString(),
     dangKyBauCuTanLap: '',
+    loaiCuTru: 'thuongTru',
   });
 
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
@@ -88,6 +89,7 @@ export default function ThuongTruForm({ onSubmit, isLoading, onSuccess }: Thuong
       soDienThoai: '',
       dauThoiGian: new Date().toISOString(),
       dangKyBauCuTanLap: '',
+      loaiCuTru: 'thuongTru',
     });
     setAvailableDistricts([]);
   };
