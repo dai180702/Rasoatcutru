@@ -5,7 +5,8 @@ import { Timestamp } from 'firebase/firestore';
 
 interface RecordsListProps {
   records: (VerificationData & { id: string; ngayKiemTra: string; createdAt?: Timestamp })[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string, record: VerificationData & { id: string }) => void;
+  type: 'tamTru' | 'thuongTru';
 }
 
 function formatDateDdMmYyyy(input: string): string {
@@ -37,12 +38,13 @@ function formatDateTime(createdAt?: Timestamp): string {
   return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
-export default function RecordsList({ records, onDelete }: RecordsListProps) {
+export default function RecordsList({ records, onDelete, type }: RecordsListProps) {
   const handleExportExcel = async () => {
     // ExcelJS để làm file giống mẫu (merge cells + border + căn lề)
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('PHỤ LỤC 1B - TẠM TRÚ');
+    const worksheetName = type === 'tamTru' ? 'PHỤ LỤC 1B - TẠM TRÚ' : 'PHỤ LỤC 1A - THƯỜNG TRÚ';
+    const worksheet = workbook.addWorksheet(worksheetName);
 
     const thinBorder = {
       top: { style: 'thin' as const },
@@ -90,7 +92,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     worksheet.getCell('K1').alignment = { horizontal: 'left', vertical: 'middle' };
 
     worksheet.mergeCells('J2:L2');
-    worksheet.getCell('J2').value = 'PHỤ LỤC 1B\nTẠM TRÚ';
+    worksheet.getCell('J2').value = type === 'tamTru' ? 'PHỤ LỤC 1B\nTẠM TRÚ' : 'PHỤ LỤC 1A\nTHƯỜNG TRÚ';
     worksheet.getCell('J2').font = { bold: true, size: 12 };
     worksheet.getCell('J2').alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
@@ -115,8 +117,13 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     worksheet.getCell('E4').value = 'Xã/phường';
     worksheet.getCell('F4').value = 'Tỉnh/thành phố';
     worksheet.getCell('G3').value = 'Nơi ở hiện tại\n(chi tiết)';
-    worksheet.getCell('H3').value = 'Đã\nĐK\n tạm trú';
-    worksheet.getCell('I3').value = 'Chưa\nĐK\n tạm trú';
+    if (type === 'tamTru') {
+      worksheet.getCell('H3').value = 'Đã\nĐK\n tạm trú';
+      worksheet.getCell('I3').value = 'Chưa\nĐK\n tạm trú';
+    } else {
+      worksheet.getCell('H3').value = 'Đã\nĐK\n thường trú';
+      worksheet.getCell('I3').value = 'Chưa\nĐK\n thường trú';
+    }
     worksheet.getCell('J3').value = 'Nghề nghiệp';
     worksheet.getCell('K3').value = 'Số điện thoại';
     worksheet.getCell('L3').value = 'Đồng ý bầu cử\n tại Tân Uyên';
@@ -216,7 +223,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-          Danh sách quản lý ({records.length} bản ghi)
+          Danh sách {type === 'tamTru' ? 'Tạm trú' : 'Thường trú'} ({records.length} bản ghi)
         </h2>
         <button
           onClick={handleExportExcel}
@@ -250,8 +257,8 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
               <th className="px-4 py-3">Xã/phường</th>
               <th className="px-4 py-3">Tỉnh/thành phố</th>
               <th className="px-4 py-3">Nơi ở hiện tại (chi tiết)</th>
-              <th className="px-4 py-3 text-center">Đã ĐK tạm trú</th>
-              <th className="px-4 py-3 text-center">Chưa ĐK tạm trú</th>
+              <th className="px-4 py-3 text-center">{type === 'tamTru' ? 'Đã ĐK tạm trú' : 'Đã ĐK thường trú'}</th>
+              <th className="px-4 py-3 text-center">{type === 'tamTru' ? 'Chưa ĐK tạm trú' : 'Chưa ĐK thường trú'}</th>
               <th className="px-4 py-3">Nghề nghiệp</th>
               <th className="px-4 py-3">Số điện thoại</th>
               <th className="px-4 py-3 text-center">Đồng ý bầu cử tại Tân Uyên</th>
@@ -306,7 +313,7 @@ export default function RecordsList({ records, onDelete }: RecordsListProps) {
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button
-                    onClick={() => onDelete(record.id)}
+                    onClick={() => onDelete(record.id, record)}
                     className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
                     title="Xóa bản ghi"
                   >

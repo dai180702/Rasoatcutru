@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { type User } from 'firebase/auth';
 import VerificationForm from './components/VerificationForm';
+import ThuongTruForm from './components/ThuongTruForm';
+import TypeSelector from './components/TypeSelector';
 import RecordsList from './components/RecordsList';
 import LoginForm from './components/LoginForm';
 import { addRecord, getRecords, deleteRecord, subscribeToRecords } from '../lib/firestore';
@@ -20,6 +22,7 @@ export interface VerificationData {
   soDienThoai: string;
   dauThoiGian: string;
   dangKyBauCuTanLap: string; // "Đồng ý" hoặc "Không đồng ý"
+  loaiCuTru: 'tamTru' | 'thuongTru'; // Loại cư trú: tạm trú hoặc thường trú
 }
 
 export default function Home() {
@@ -27,6 +30,7 @@ export default function Home() {
   const [isLoadingRecords, setIsLoadingRecords] = useState(true);
   const [records, setRecords] = useState<(VerificationData & { id: string; ngayKiemTra: string })[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [selectedType, setSelectedType] = useState<'tamTru' | 'thuongTru' | null>(null);
 
   // Theo dõi trạng thái đăng nhập và subscribe real-time cho records
   useEffect(() => {
@@ -42,16 +46,24 @@ export default function Home() {
       }
 
       // Nếu đã đăng nhập và được phép, subscribe real-time
-      if (user && isAuthorizedUser(user)) {
+      if (user && isAuthorizedUser(user) && selectedType) {
         setIsLoadingRecords(true);
         unsubscribeRecords = subscribeToRecords(
+          selectedType,
           (data) => {
             setRecords(data);
             setIsLoadingRecords(false);
           },
-          (error) => {
+          (error: Error) => {
             console.error('Error subscribing to records:', error);
-            alert(error.message);
+            console.error('Error details:', {
+              message: error.message,
+              stack: error.stack,
+            });
+            // Chỉ hiển thị alert nếu không phải lỗi do chưa có dữ liệu
+            if (!error.message.includes('index') && !error.message.includes('not-found')) {
+              alert(error.message);
+            }
             setRecords([]);
             setIsLoadingRecords(false);
           }
@@ -68,7 +80,7 @@ export default function Home() {
         unsubscribeRecords();
       }
     };
-  }, []);
+  }, [selectedType]);
 
   // Load danh sách khi user đăng nhập thành công (backup, nhưng real-time sẽ tự động cập nhật)
   const handleLoginSuccess = (user: User) => {
@@ -77,10 +89,19 @@ export default function Home() {
   };
 
   const handleVerification = async (data: VerificationData) => {
+    if (!selectedType) {
+      alert('Vui lòng chọn loại cư trú trước.');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      await addRecord(data);
+      const dataWithType = {
+        ...data,
+        loaiCuTru: selectedType,
+      };
+      await addRecord(dataWithType);
       alert('Thêm bản ghi thành công!');
       // Real-time listener sẽ tự động cập nhật danh sách, không cần gọi loadRecords()
     } catch (error) {
@@ -92,10 +113,11 @@ export default function Home() {
     }
   };
 
-  const handleDeleteRecord = async (id: string) => {
+  const handleDeleteRecord = async (id: string, record: VerificationData & { id: string }) => {
     if (confirm('Bạn có chắc chắn muốn xóa bản ghi này?')) {
       try {
-        await deleteRecord(id);
+        const loaiCuTru = record.loaiCuTru || selectedType || 'tamTru';
+        await deleteRecord(id, loaiCuTru);
         // Real-time listener sẽ tự động cập nhật danh sách, không cần gọi loadRecords()
       } catch (error) {
         console.error('Error deleting record:', error);
@@ -121,41 +143,57 @@ export default function Home() {
           <LoginForm onLoginSuccess={handleLoginSuccess} currentUser={currentUser} variant="inline" />
         </header>
 
-        {/* Form luôn hiển thị - không cần đăng nhập */}
-        <div className="mb-6">
-          {/* Form Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-              Nhập thông tin cần rà soát
-            </h2>
-            <VerificationForm 
-              onSubmit={handleVerification} 
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
+        {/* Type Selector */}
+        <TypeSelector selectedType={selectedType} onSelectType={setSelectedType} />
 
-        {/* Records List Section - chỉ hiển thị khi đã đăng nhập và được phép */}
-        {currentUser && isAuthorizedUser(currentUser) && (
-          <>
-            {isLoadingRecords ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                  <span className="ml-4 text-gray-600 dark:text-gray-300">
-                    Đang tải dữ liệu...
-                  </span>
-                </div>
+        {/* Form Section - chỉ hiển thị khi đã chọn loại */}
+        {selectedType && (
+          <div className="mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
+                Nhập thông tin cần rà soát - {selectedType === 'tamTru' ? 'Tạm trú' : 'Thường trú'}
+              </h2>
+              {selectedType === 'tamTru' ? (
+                <VerificationForm 
+                  onSubmit={handleVerification} 
+                  isLoading={isLoading}
+                />
+              ) : (
+                <ThuongTruForm 
+                  onSubmit={handleVerification} 
+                  isLoading={isLoading}
+                />
+              )}
+            </div>
+      </div>
+      )}
+
+      {/* Records List Section - chỉ hiển thị khi đã đăng nhập, được phép và đã chọn loại */}
+      {selectedType && currentUser && isAuthorizedUser(currentUser) && (
+        <>
+          {isLoadingRecords ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <span className="ml-4 text-gray-600 dark:text-gray-300">
+                  Đang tải dữ liệu...
+                </span>
               </div>
-            ) : (
-              <RecordsList records={records} onDelete={handleDeleteRecord} />
-            )}
-          </>
-        )}
+            </div>
+          ) : (
+            <RecordsList 
+              records={records} 
+              onDelete={handleDeleteRecord}
+              type={selectedType}
+            />
+          )}
+        </>
+      )}
 
         {/* Footer */}
         <footer className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>© 2026 Hệ thống Rà soát Cư trú. Bảo mật thông tin được đảm bảo.</p>
+          <p className="mt-1">Được phát triển bởi Minh Đại</p>
         </footer>
       </div>
     </div>
